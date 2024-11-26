@@ -1,7 +1,6 @@
 #include <iostream>
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <string> // F�r std::string und std::getline
 #define BUFFER_SIZE 2048
 using namespace std;
 
@@ -9,11 +8,10 @@ using namespace std;
 
 int main() {
     WSADATA wsaData;
-    SOCKET clientSocket;
-    SOCKADDR_IN serverAddr;
+    SOCKET serverSocket, clientSocket;
+    SOCKADDR_IN serverAddr, clientAddr;
     char buffer[BUFFER_SIZE];
-    bool cont = 1;
-    string message;
+    int clientAddrSize = sizeof(clientAddr);
 
     int result = WSAStartup(MAKEWORD(2, 2), &wsaData); // Initialisiert die WinSock-Bibliothek
     if (result != 0) {
@@ -22,31 +20,37 @@ int main() {
         return 1;
     }
 
-    clientSocket = socket(AF_INET, SOCK_STREAM, 0); // Erstellt einen neuen TCP-Socket
+    serverSocket = socket(AF_INET, SOCK_STREAM, 0); // Erstellt einen neuen TCP-Socket
 
+    serverAddr.sin_addr.s_addr = INADDR_ANY; // Akzeptiert Verbindungen von jeder IP-Adresse
     serverAddr.sin_family = AF_INET; // Verwendet das IPv4-Protokoll
     serverAddr.sin_port = htons(54000); // Setzt den Port auf 54000
-    inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr); // Konvertiert die IP-Adresse von Text- in Bin�rform
 
-    connect(clientSocket, (SOCKADDR*)&serverAddr, sizeof(serverAddr)); // Verbindet sich mit dem Server
+    bind(serverSocket, (SOCKADDR*)&serverAddr, sizeof(serverAddr)); // Bindet den Socket an die Adresse und den Port
+    listen(serverSocket, SOMAXCONN); // Wartet auf eingehende Verbindungen
 
-    cout << "Connected to the server!\n";
+    cout << "Waiting for a connection... \n";
 
+    clientSocket = accept(serverSocket, (SOCKADDR*)&clientAddr, &clientAddrSize); // Akzeptiert eine eingehende Verbindung
+
+    cout << "Client connected! \n";
+
+    // Schleife, um Nachrichten zu empfangen und zu senden
     while (true) {
-        cout << "Enter your message: ";
-        getline(cin >> ws, message);
-        send(clientSocket, message.c_str(), message.size() + 1, 0); // Sendet eine Nachricht an den Server
-        int bytesReceived = recv(clientSocket, buffer, 1024, 0); // Empf�ngt die Antwort vom Server
-
-        if (bytesReceived > 0) {
-            buffer[bytesReceived] = '\0'; // Nullterminierung des empfangenen Datenblocks
-            cout << "Received: " << buffer << "\n";
+        int bytesReceived = recv(clientSocket, buffer, 1024, 0); // Empf�ngt Daten vom Client
+        if (bytesReceived == SOCKET_ERROR || bytesReceived == 0) {
+            cout << "Connection closed";
+            break;
         }
-        /*cout << "If you wanna go on press 1, else press 0. -> ";
-        cin >> cont;*/
+        buffer[bytesReceived] = '\0'; // Nullterminierung des empfangenen Datenblocks
+        cout << "Received: " << buffer << "\n";
+
+        string response = "Message received";
+        send(clientSocket, response.c_str(), response.size() + 1, 0); // Antwortet dem Client
     }
 
-    closesocket(clientSocket); // Schlie�t den Client-Socket
+    closesocket(clientSocket); // Schließt den Client-Socket
+    closesocket(serverSocket); // Schließt den Server-Socket
     WSACleanup(); // Beendet die Verwendung der WinSock-Bibliothek
 
     return 0;
