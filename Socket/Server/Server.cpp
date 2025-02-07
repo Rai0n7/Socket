@@ -6,12 +6,42 @@ using namespace std;
 
 #pragma comment(lib, "ws2_32.lib")
 
+BOOL WINAPI ConsoleHandler(DWORD ctrlType) {
+    switch (ctrlType) {
+        case CTRL_C_EVENT:
+            cout << "Ctrl-C event\n";
+            return TRUE;
+        case CTRL_CLOSE_EVENT:
+            cout << "Ctrl-Close event\n";
+            return TRUE;
+        case CTRL_BREAK_EVENT:
+            cout << "Ctrl-Break event\n";
+            return TRUE;
+        case CTRL_LOGOFF_EVENT:
+            cout << "Ctrl-Logoff event\n";
+            return TRUE;
+        case CTRL_SHUTDOWN_EVENT:
+            cout << "Ctrl-Shutdown event\n";
+            return TRUE;
+        default:
+            return FALSE;
+    }
+}
+
 int main() {
     WSADATA wsaData;
     SOCKET serverSocket, clientSocket;
     SOCKADDR_IN serverAddr, clientAddr;
     char buffer[BUFFER_SIZE];
     int clientAddrSize = sizeof(clientAddr);
+
+    if (SetConsoleCtrlHandler(ConsoleHandler, TRUE)) {
+        cout << "The control handler is installed.\n";
+    }
+    else {
+        cerr << "ERROR: Could not set control handler\n";
+        return 1;
+    }
 
     int result = WSAStartup(MAKEWORD(2, 2), &wsaData); // Initialisiert die WinSock-Bibliothek
     if (result != 0) {
