@@ -7,26 +7,13 @@ using namespace std;
 
 #pragma comment(lib, "ws2_32.lib")
 
-BOOL WINAPI ConsoleHandler(DWORD ctrlType) {
-    switch (ctrlType) {
-    case CTRL_C_EVENT:
-        cout << "Ctrl-C event\n";
-        return TRUE;
-    case CTRL_CLOSE_EVENT:
-        cout << "Ctrl-Close event\n";
-        return TRUE;
-    case CTRL_BREAK_EVENT:
-        cout << "Ctrl-Break event\n";
-        return TRUE;
-    case CTRL_LOGOFF_EVENT:
-        cout << "Ctrl-Logoff event\n";
-        return TRUE;
-    case CTRL_SHUTDOWN_EVENT:
-        cout << "Ctrl-Shutdown event\n";
-        return TRUE;
-    default:
-        return FALSE;
+BOOL runClient = TRUE;
+
+BOOL WINAPI ConsoleHandler(DWORD signal) {
+    if (signal == CTRL_C_EVENT) {
+        runClient = FALSE;
     }
+    return TRUE;
 }
 
 int main() {
@@ -42,6 +29,7 @@ int main() {
     }
     else {
         cerr << "ERROR: Could not set control handler\n";
+        system("exit");
         return 1;
     }
 
@@ -62,7 +50,7 @@ int main() {
 
     cout << "Connected to the server!\n";
 
-    while (true) {
+    while (runClient) {
         cout << "Enter your message: ";
         getline(cin >> ws, message);
         send(clientSocket, message.c_str(), message.size() + 1, 0); // Sendet eine Nachricht an den Server
